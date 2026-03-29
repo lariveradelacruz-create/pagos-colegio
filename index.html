@@ -2,35 +2,107 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Pagos - Domingo Sabio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Colegio Domingo Sabio - Oficial</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        :root { --p: #1a73e8; --bg: #f8f9fa; --txt: #202124; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; color: var(--txt); }
-        .header { background: var(--p); color: white; padding: 20px; text-align: center; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .container { padding: 15px; max-width: 600px; margin: auto; }
+        :root { --primary: #1a73e8; --success: #2ecc71; --danger: #e74c3c; --bg: #f4f7f6; --card: #ffffff; --text: #2c3e50; }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background: var(--bg); margin: 0; color: var(--text); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+        
+        /* HEADER PRO */
+        .header { background: var(--primary); color: white; padding: 25px 15px; text-align: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+        .header h1 { margin: 0; font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
+        .header p { margin: 5px 0 0; opacity: 0.9; font-size: 14px; font-weight: 500; }
+        
+        .container { padding: 20px 15px; max-width: 550px; margin: auto; padding-bottom: 100px; }
+
+        /* GRID MESES */
         .grid-meses { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .btn-mes { background: white; padding: 20px 5px; border-radius: 12px; text-align: center; font-weight: bold; border: 1px solid #ddd; cursor: pointer; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: 0.2s; }
-        .btn-mes:active { transform: scale(0.95); background: #e8f0fe; border-color: var(--p); }
+        .btn-mes { background: var(--card); padding: 25px 10px; border-radius: 15px; text-align: center; font-weight: 800; border: 2px solid #eee; cursor: pointer; transition: 0.2s; color: var(--primary); font-size: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
+        .btn-mes:active { transform: scale(0.96); background: #e8f0fe; }
+
+        /* BARRA ESTADISTICAS */
+        .stats-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 15px; border-radius: 12px; border: 1px solid #e0e0e0; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
+        .stat-item { font-weight: 600; font-size: 13px; color: #7f8c8d; text-align: center; }
+        .stat-item span { color: var(--primary); font-size: 18px; font-weight: 800; display: block; }
+
+        /* TARJETAS DE ALUMNOS UX */
+        .card-alumno { background: var(--card); padding: 18px; border-radius: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: all 0.4s ease; overflow: hidden; }
+        .card-alumno.confirmando { border-color: var(--success); background: #f0fff4; }
+        .card-alumno.removiendo { transform: translateX(110%); opacity: 0; }
+
+        .nombre-alumno { font-size: 14px; font-weight: 700; color: #34495e; text-transform: uppercase; flex: 1; padding-right: 10px; line-height: 1.3; }
+        .label-cancelado { color: var(--success); font-weight: 800; font-size: 11px; margin-top: 3px; display: none; text-transform: uppercase; animation: fadeIn 0.3s; }
+        
+        .btn-accion { width: 45px; height: 45px; border-radius: 12px; border: 2px solid #ddd; background: #fafafa; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: 0.3s; color: #ccc; flex-shrink: 0; }
+        .btn-accion.pagado { background: var(--success); border-color: var(--success); color: white; border-radius: 50%; animation: popIn 0.3s; }
+
+        /* VISTAS */
         .vista { display: none; }
-        .activa { display: block; }
-        .stats { background: #e7f3ff; padding: 15px; border-radius: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; border: 1px solid #c2e0ff; }
-        .card-alumno { background: white; padding: 12px 15px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 6px solid #e0e0e0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .pagado { border-left-color: #2ecc71; background: #f0fff4; }
-        .btn-pago { padding: 10px 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; min-width: 100px; font-size: 13px; }
-        .btn-pendiente { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
-        .btn-confirmado { background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
-        .back { color: white; position: absolute; left: 15px; top: 22px; cursor: pointer; font-size: 20px; }
-        .excel-btn { background: #1d6f42; color: white; width: 100%; border: none; padding: 15px; border-radius: 10px; margin-top: 20px; cursor: pointer; font-weight: bold; font-size: 16px; }
+        .activa { display: block; animation: fadeIn 0.3s; }
+
+        /* MENSAJE FINAL */
+        .msg-completado { text-align: center; padding: 60px 20px; color: var(--success); animation: fadeIn 0.5s; }
+        .msg-completado h2 { font-size: 26px; font-weight: 800; margin-bottom: 5px; }
+        
+        /* BOTONES FLOTANTES BAJO */
+        .footer-actions { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; box-shadow: 0 -4px 15px rgba(0,0,0,0.08); display: flex; justify-content: center; z-index: 90; border-top: 1px solid #eee; }
+        .btn-share { background: #1d6f42; color: white; width: 100%; max-width: 520px; border: none; padding: 16px; border-radius: 12px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(29, 111, 66, 0.2); }
+        .btn-share:active { transform: scale(0.98); background: #155532; }
+
+        .back-btn { position: absolute; left: 10px; top: 22px; color: white; background: rgba(255,255,255,0.15); border: none; width: 40px; height: 40px; border-radius: 10px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        /* ====== MODAL DE CONFIRMACIÓN PRO ====== */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); animation: fadeIn 0.2s; }
+        .modal-pro { background: white; width: 90%; max-width: 400px; border-radius: 20px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: slideUp 0.3s ease-out; transform: translateY(0); }
+        
+        .modal-header-pro { text-align: center; margin-bottom: 20px; color: var(--primary); }
+        .modal-header-pro font { font-size: 30px; }
+        .modal-header-pro h3 { margin: 10px 0 0; font-size: 18px; font-weight: 800; }
+
+        .modal-body-pro { text-align: center; font-size: 15px; color: #555; line-height: 1.5; margin-bottom: 25px; }
+        .modal-body-pro b { color: var(--text); font-weight: 700; }
+        .highlight-mes { background: #e8f0fe; color: var(--primary); padding: 2px 6px; border-radius: 5px; font-weight: 800; text-transform: uppercase; }
+
+        .modal-footer-pro { display: flex; gap: 10px; }
+        .btn-modal { flex: 1; padding: 15px; border-radius: 12px; border: none; font-weight: 800; font-size: 15px; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .btn-modal-cancel { background: #f2f2f2; color: #7f8c8d; }
+        .btn-modal-cancel:active { background: #e6e6e6; }
+        
+        .btn-modal-confirm { background: var(--primary); color: white; box-shadow: 0 4px 8px rgba(26, 115, 232, 0.2); }
+        .btn-modal-confirm:active { background: #1557b0; transform: scale(0.98); }
+
+        /* ANIMACIONES */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes popIn { 0% { transform: scale(0.5); } 80% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
     </style>
 </head>
 <body>
 
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-pro">
+            <div class="modal-header-pro">
+                <font>📝</font>
+                <h3>Confirmar Registro</h3>
+            </div>
+            <div class="modal-body-pro">
+                ¿Deseas confirmar que el estudiante <b id="modalAlumnoNombre"></b> ha CANCELADO la pensión del mes de <span class="highlight-mes" id="modalMesNombre"></span>?
+            </div>
+            <div class="modal-footer-pro">
+                <button class="btn-modal btn-modal-cancel" onclick="cerrarModalPro()">Cancelar</button>
+                <button class="btn-modal btn-modal-confirm" id="btnConfirmarPro">Sí, Confirmar</button>
+            </div>
+        </div>
+    </div>
+
     <div class="header">
-        <span id="btnBack" class="back" style="display:none" onclick="irAMeses()">⬅</span>
-        <h2 id="titulo" style="margin:0; font-size: 20px;">Control 2026</h2>
+        <button id="btnBack" class="back-btn" style="display:none" onclick="irAMeses()">←</button>
+        <h1 id="mainTitle">DOMINGO SABIO</h1>
+        <p id="subTitle">Control 2026 - Pagos de pensión</p>
     </div>
 
     <div class="container">
@@ -50,13 +122,22 @@
         </div>
 
         <div id="vistaAlumnos" class="vista">
-            <div class="stats">
-                <div>💰 <span id="sumaTotal">S/ 0</span></div>
-                <div>✅ <span id="numPagos">0</span>/23</div>
+            <div class="stats-bar">
+                <div class="stat-item">Recaudado <span>S/ <b id="sumaTotal">0</b></span></div>
+                <div class="stat-item">Pendientes <span><b id="numFaltantes">0</b></span></div>
             </div>
+            
             <div id="renderAlumnos"></div>
-            <button class="excel-btn" onclick="exportarExcel()">📥 Descargar Reporte (.xlsx)</button>
+            
+            <div id="msgTodoPagado" style="display:none" class="msg-completado">
+                <h2>¡TODO CANCELADO! ✅</h2>
+                <p id="mesFinalizadoLabel" style="font-weight: 700; color: #7f8c8d;"></p>
+            </div>
         </div>
+    </div>
+
+    <div class="footer-actions vista" id="footerAlumnos">
+        <button class="btn-share" onclick="exportarYCompartir()">📥 EXPORTAR REPORTE EXCEL</button>
     </div>
 
     <script>
@@ -66,91 +147,143 @@
         
         let mesActual = "";
         let alumnosData = [];
+        let datosConfirmacionActual = null; // Para guardar id y nombre temporalmente
 
         async function verMes(mes) {
             mesActual = mes;
-            const tituloDisplay = mes === 'mayonesa' ? 'MAYO' : mes.toUpperCase();
-            document.getElementById('titulo').innerText = tituloDisplay;
+            const nMes = mes === 'mayonesa' ? 'MAYO' : mes.toUpperCase();
+            document.getElementById('mainTitle').innerText = "MES DE " + nMes;
+            document.getElementById('subTitle').innerText = "Lista de estudiantes pendientes";
+            
             document.getElementById('vistaMeses').classList.remove('activa');
             document.getElementById('vistaAlumnos').classList.add('activa');
-            document.getElementById('btnBack').style.display = 'block';
+            document.getElementById('footerAlumnos').classList.add('activa');
+            document.getElementById('btnBack').style.display = 'flex';
             
+            // Cargamos datos frescos de Supabase
             const { data, error } = await supabaseClient.from('alumnos').select('*').order('nombres_y_apellidos');
-            if (error) return;
+            if (error) return alert("Error al conectar");
             alumnosData = data;
             mostrarAlumnos();
         }
 
         function mostrarAlumnos() {
             const container = document.getElementById('renderAlumnos');
+            const msgTodo = document.getElementById('msgTodoPagado');
             container.innerHTML = "";
-            let pagados = 0;
+            
+            // Filtramos para mostrar solo los pendientes
+            const pendientes = alumnosData.filter(al => al[mesActual] !== "PAGADO");
+            const pagadosCount = alumnosData.length - pendientes.length;
 
-            alumnosData.forEach(al => {
-                const valor = al[mesActual];
-                const estaPagado = (valor === "PAGADO");
-                if(estaPagado) pagados++;
-
-                // Usamos una técnica de seguridad para capturar el ID correctamente sin importar la tilde
-                const idAlumno = al.identificación || al.identificacion || al.id;
-
-                container.innerHTML += `
-                    <div class="card-alumno ${estaPagado ? 'pagado' : ''}">
-                        <div style="max-width: 60%;">
-                            <div style="font-size: 14px; font-weight: bold;">${al.nombres_y_apellidos}</div>
-                        </div>
-                        <button class="btn-pago ${estaPagado ? 'btn-confirmado' : 'btn-pendiente'}" 
-                                onclick="togglePago('${idAlumno}', '${valor}')">
-                            ${estaPagado ? '✅ PAGÓ' : '⏳ PENDIENTE'}
-                        </button>
-                    </div>
-                `;
-            });
-            document.getElementById('numPagos').innerText = pagados;
-            document.getElementById('sumaTotal').innerText = "S/ " + (pagados * 50);
+            if (pendientes.length === 0) {
+                container.style.display = "none";
+                msgTodo.style.display = "block";
+                document.getElementById('mesFinalizadoLabel').innerText = "MES CORRESPONDIENTE: " + mesActual.toUpperCase();
+            } else {
+                container.style.display = "block";
+                msgTodo.style.display = "none";
+                
+                pendientes.forEach(al => {
+                    const id = al['identificación'] || al['identificacion'];
+                    container.innerHTML += `
+                        <div class="card-alumno" id="card-${id}">
+                            <div>
+                                <div class="nombre-alumno">${al.nombres_y_apellidos}</div>
+                                <div class="label-cancelado" id="lbl-${id}">¡CANCELADO EXITOSAMENTE!</div>
+                            </div>
+                            <button class="btn-accion" id="btn-${id}" onclick="abrirModalPro('${id}', '${al.nombres_y_apellidos}')">
+                                ○
+                            </button>
+                        </div>`;
+                });
+            }
+            document.getElementById('numFaltantes').innerText = pendientes.length;
+            document.getElementById('sumaTotal').innerText = (pagadosCount * 50);
         }
 
-        async function togglePago(id, valorActual) {
-            const nuevoValor = (valorActual === "PAGADO") ? "NULO" : "PAGADO";
+        // ====== LÓGICA MODAL PRO ======
+        function abrirModalPro(id, nombre) {
+            datosConfirmacionActual = { id, nombre };
+            const nMes = mesActual === 'mayonesa' ? 'MAYO' : mesActual.toUpperCase();
             
-            // Intentamos actualizar usando el nombre exacto que sale en tu error
-            const { error } = await supabaseClient
-                .from('alumnos')
-                .update({ [mesActual]: nuevoValor })
-                .eq('identificación', id);
+            document.getElementById('modalAlumnoNombre').innerText = nombre;
+            document.getElementById('modalMesNombre').innerText = nMes;
+            document.getElementById('modalOverlay').style.display = 'flex';
+            
+            // Asignar función al botón confirmar del modal (una sola vez)
+            document.getElementById('btnConfirmarPro').onclick = ejecutarPagoPro;
+        }
 
-            if (!error) {
-                verMes(mesActual);
-            } else {
-                // Si falla por la tilde, intentamos automáticamente sin tilde
-                const { error: error2 } = await supabaseClient
-                    .from('alumnos')
-                    .update({ [mesActual]: nuevoValor })
-                    .eq('identificacion', id);
-                
-                if (!error2) verMes(mesActual);
-                else alert("Error persistente: " + error2.message);
-            }
+        function cerrarModalPro() {
+            document.getElementById('modalOverlay').style.display = 'none';
+            datosConfirmacionActual = null;
+        }
+
+        async function ejecutarPagoPro() {
+            if(!datosConfirmacionActual) return;
+            const { id } = datosConfirmacionActual;
+            
+            // Cerrar modal inmediatamente para UX rápida
+            cerrarModalPro();
+
+            const card = document.getElementById(`card-${id}`);
+            const btn = document.getElementById(`btn-${id}`);
+            const lbl = document.getElementById(`lbl-${id}`);
+
+            // 1. Feedback Visual Pro (Botón ✅, Texto, Fondo Verde)
+            card.classList.add('confirmando');
+            btn.innerHTML = "✅";
+            btn.classList.add('pagado');
+            lbl.style.display = "block";
+
+            // 2. Guardar en Supabase (con doble intento por tilde)
+            const { error } = await supabaseClient.from('alumnos').update({ [mesActual]: "PAGADO" }).eq('identificación', id);
+            if (error) await supabaseClient.from('alumnos').update({ [mesActual]: "PAGADO" }).eq('identificacion', id);
+
+            // 3. Esperar 1.2 segundos para que el usuario vea el éxito y luego remover con animación
+            setTimeout(() => {
+                card.classList.add('removiendo');
+                // Esperar a que termine la animación de salida (0.4s) para actualizar la lista
+                setTimeout(() => {
+                    alumnosData = alumnosData.map(al => {
+                        const idAl = al['identificación'] || al['identificacion'];
+                        if(idAl == id) al[mesActual] = "PAGADO";
+                        return al;
+                    });
+                    mostrarAlumnos();
+                }, 400);
+            }, 1200);
         }
 
         function irAMeses() {
             document.getElementById('vistaMeses').classList.add('activa');
             document.getElementById('vistaAlumnos').classList.remove('activa');
+            document.getElementById('footerAlumnos').classList.remove('activa');
             document.getElementById('btnBack').style.display = 'none';
-            document.getElementById('titulo').innerText = "Control 2026";
+            document.getElementById('mainTitle').innerText = "DOMINGO SABIO";
+            document.getElementById('subTitle').innerText = "Control 2026 - Pagos de pensión";
         }
 
-        function exportarExcel() {
-            const nombreMesArchivo = mesActual === 'mayonesa' ? 'Mayo' : mesActual;
-            const dataParaExcel = alumnosData.map(al => ({
-                "Nombres y Apellidos": al.nombres_y_apellidos,
-                "Estado de Pago": al[mesActual] === "PAGADO" ? "PAGADO" : "PENDIENTE",
-                "Monto Recaudado": al[mesActual] === "PAGADO" ? "S/ 50.00" : "S/ 0.00"
-            }));
-            const ws = XLSX.utils.json_to_sheet(dataParaExcel);
+        function exportarYCompartir() {
+            const nombreMes = mesActual.toUpperCase();
+            const header = [
+                ["COLEGIO DOMINGO SABIO"],
+                ["REPORTE DE PENSIONES - AÑO 2026"],
+                ["MES: " + nombreMes],
+                [""]
+            ];
+            const subheader = [["ESTUDIANTE", "ESTADO", "MONTO"]];
+            const body = alumnosData.map(al => [
+                al.nombres_y_apellidos, 
+                al[mesActual] === "PAGADO" ? "PAGADO" : "PENDIENTE",
+                al[mesActual] === "PAGADO" ? "S/ 50.00" : "S/ 0.00"
+            ]);
+
+            const ws = XLSX.utils.aoa_to_sheet(header.concat(subheader).concat(body));
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Pagos");
-            XLSX.writeFile(wb, `Reporte_Pagos_${nombreMesArchivo}_2026.xlsx`);
+            XLSX.utils.book_append_sheet(wb, ws, "Pensiones");
+            XLSX.writeFile(wb, `Reporte_DomingoSabio_${nombreMes}.xlsx`);
         }
     </script>
 </body>
