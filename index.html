@@ -11,25 +11,17 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; color: var(--txt); }
         .header { background: var(--p); color: white; padding: 20px; text-align: center; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .container { padding: 15px; max-width: 600px; margin: auto; }
-        
-        /* Cuadrícula de Meses - 2 columnas */
         .grid-meses { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .btn-mes { background: white; padding: 20px 5px; border-radius: 12px; text-align: center; font-weight: bold; border: 1px solid #ddd; cursor: pointer; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: 0.2s; }
         .btn-mes:active { transform: scale(0.95); background: #e8f0fe; border-color: var(--p); }
-
-        /* Vistas */
         .vista { display: none; }
         .activa { display: block; }
-
-        /* Lista de Alumnos */
         .stats { background: #e7f3ff; padding: 15px; border-radius: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; border: 1px solid #c2e0ff; }
         .card-alumno { background: white; padding: 12px 15px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 6px solid #e0e0e0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .pagado { border-left-color: #2ecc71; background: #f0fff4; }
-        
         .btn-pago { padding: 10px 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; min-width: 100px; font-size: 13px; }
         .btn-pendiente { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
         .btn-confirmado { background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
-
         .back { color: white; position: absolute; left: 15px; top: 22px; cursor: pointer; font-size: 20px; }
         .excel-btn { background: #1d6f42; color: white; width: 100%; border: none; padding: 15px; border-radius: 10px; margin-top: 20px; cursor: pointer; font-weight: bold; font-size: 16px; }
     </style>
@@ -79,14 +71,12 @@
             mesActual = mes;
             const tituloDisplay = mes === 'mayonesa' ? 'MAYO' : mes.toUpperCase();
             document.getElementById('titulo').innerText = tituloDisplay;
-            
             document.getElementById('vistaMeses').classList.remove('activa');
             document.getElementById('vistaAlumnos').classList.add('activa');
             document.getElementById('btnBack').style.display = 'block';
             
-            // Cargamos datos frescos de Supabase
             const { data, error } = await supabaseClient.from('alumnos').select('*').order('nombres_y_apellidos');
-            if (error) return console.log(error);
+            if (error) return;
             alumnosData = data;
             mostrarAlumnos();
         }
@@ -98,7 +88,7 @@
 
             alumnosData.forEach(al => {
                 const valor = al[mesActual];
-                const estaPagado = (valor === "PAGADO" || valor === "pagado");
+                const estaPagado = (valor === "PAGADO");
                 if(estaPagado) pagados++;
 
                 container.innerHTML += `
@@ -107,25 +97,22 @@
                             <div style="font-size: 14px; font-weight: bold;">${al.nombres_y_apellidos}</div>
                         </div>
                         <button class="btn-pago ${estaPagado ? 'btn-confirmado' : 'btn-pendiente'}" 
-                                onclick="togglePago('${al.identificación}', '${valor}')">
+                                onclick="togglePago('${al.identificacion}', '${valor}')">
                             ${estaPagado ? '✅ PAGÓ' : '⏳ PENDIENTE'}
                         </button>
                     </div>
                 `;
             });
-
             document.getElementById('numPagos').innerText = pagados;
             document.getElementById('sumaTotal').innerText = "S/ " + (pagados * 50);
         }
 
         async function togglePago(id, valorActual) {
             const nuevoValor = (valorActual === "PAGADO") ? "NULO" : "PAGADO";
-            
-            // Actualización optimista en interfaz para que sea instantáneo
             const { error } = await supabaseClient
                 .from('alumnos')
                 .update({ [mesActual]: nuevoValor })
-                .eq('identificación', id);
+                .eq('identificacion', id);
 
             if (!error) verMes(mesActual);
             else alert("Error al guardar: " + error.message);
@@ -135,7 +122,7 @@
             document.getElementById('vistaMeses').classList.add('activa');
             document.getElementById('vistaAlumnos').classList.remove('activa');
             document.getElementById('btnBack').style.display = 'none';
-            document.getElementById('titulo').innerText = "Control 2026";
+            document.getElementById('titulo').innerText = \"Control 2026\";
         }
 
         function exportarExcel() {
@@ -145,7 +132,6 @@
                 "Estado de Pago": al[mesActual] === "PAGADO" ? "PAGADO" : "PENDIENTE",
                 "Monto Recaudado": al[mesActual] === "PAGADO" ? "S/ 50.00" : "S/ 0.00"
             }));
-            
             const ws = XLSX.utils.json_to_sheet(dataParaExcel);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Pagos");
