@@ -91,13 +91,16 @@
                 const estaPagado = (valor === "PAGADO");
                 if(estaPagado) pagados++;
 
+                // Usamos una técnica de seguridad para capturar el ID correctamente sin importar la tilde
+                const idAlumno = al.identificación || al.identificacion || al.id;
+
                 container.innerHTML += `
                     <div class="card-alumno ${estaPagado ? 'pagado' : ''}">
                         <div style="max-width: 60%;">
                             <div style="font-size: 14px; font-weight: bold;">${al.nombres_y_apellidos}</div>
                         </div>
                         <button class="btn-pago ${estaPagado ? 'btn-confirmado' : 'btn-pendiente'}" 
-                                onclick="togglePago('${al.identificacion}', '${valor}')">
+                                onclick="togglePago('${idAlumno}', '${valor}')">
                             ${estaPagado ? '✅ PAGÓ' : '⏳ PENDIENTE'}
                         </button>
                     </div>
@@ -109,20 +112,32 @@
 
         async function togglePago(id, valorActual) {
             const nuevoValor = (valorActual === "PAGADO") ? "NULO" : "PAGADO";
+            
+            // Intentamos actualizar usando el nombre exacto que sale en tu error
             const { error } = await supabaseClient
                 .from('alumnos')
                 .update({ [mesActual]: nuevoValor })
-                .eq('identificacion', id);
+                .eq('identificación', id);
 
-            if (!error) verMes(mesActual);
-            else alert("Error al guardar: " + error.message);
+            if (!error) {
+                verMes(mesActual);
+            } else {
+                // Si falla por la tilde, intentamos automáticamente sin tilde
+                const { error: error2 } = await supabaseClient
+                    .from('alumnos')
+                    .update({ [mesActual]: nuevoValor })
+                    .eq('identificacion', id);
+                
+                if (!error2) verMes(mesActual);
+                else alert("Error persistente: " + error2.message);
+            }
         }
 
         function irAMeses() {
             document.getElementById('vistaMeses').classList.add('activa');
             document.getElementById('vistaAlumnos').classList.remove('activa');
             document.getElementById('btnBack').style.display = 'none';
-            document.getElementById('titulo').innerText = \"Control 2026\";
+            document.getElementById('titulo').innerText = "Control 2026";
         }
 
         function exportarExcel() {
